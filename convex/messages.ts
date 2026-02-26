@@ -2,29 +2,27 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
- * Message mutations and queries.
- * Handles sending and fetching messages in a conversation.
+ * Sends a message in a conversation.
  */
-
-/** Sends a new message in a conversation. */
-export const send = mutation({
+export const sendMessage = mutation({
   args: {
     conversationId: v.id("conversations"),
     senderId: v.string(),
     text: v.string(),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("messages", {
+    return await ctx.db.insert("messages", {
       conversationId: args.conversationId,
       senderId: args.senderId,
       text: args.text,
-      createdAt: Date.now(),
     });
   },
 });
 
-/** Fetches all messages for a conversation. Auto-updates in real time. */
-export const list = query({
+/**
+ * Returns all messages for a given conversation in real time.
+ */
+export const getMessages = query({
   args: { conversationId: v.id("conversations") },
   handler: async (ctx, args) => {
     return await ctx.db
@@ -36,4 +34,3 @@ export const list = query({
       .collect();
   },
 });
-

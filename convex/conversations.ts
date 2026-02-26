@@ -2,57 +2,66 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
- * Conversation mutations and queries.
- * Handles creating and fetching one-on-one conversations.
+ * Creates a new conversation between two users or returns existing one.
  */
-
-/** Creates a new conversation between two users, or returns existing one. */
-export const getOrCreate = mutation({
+export const getOrCreateConversation = mutation({
   args: {
     currentClerkId: v.string(),
     otherClerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("conversations")
-      .filter((q) =>
-        q.or(
-          q.and(
-            q.eq(q.field("participantOne"), args.currentClerkId),
-            q.eq(q.field("participantTwo"), args.otherClerkId)
-          ),
-          q.and(
-            q.eq(q.field("participantOne"), args.otherClerkId),
-            q.eq(q.field("participantTwo"), args.currentClerkId)
-          )
-        )
-      )
-      .unique();
+    const { currentClerkId, otherClerkId } = args;
 
+    const asParticipantOne = await ctx.db
+      .query("conversations")
+      .withIndex("by_participant_one", (q) =>
+        q.eq("participantOne", currentClerkId)
+      )
+      .collect();
+
+    const existing = asParticipantOne.find(
+      (c) => c.participantTwo === otherClerkId
+    );
     if (existing) return existing._id;
 
+    const asParticipantTwo = await ctx.db
+      .query("conversations")
+      .withIndex("by_participant_two", (q) =>
+        q.eq("participantTwo", currentClerkId)
+      )
+      .collect();
+
+    const existingReverse = asParticipantTwo.find(
+      (c) => c.participantOne === otherClerkId
+    );
+    if (existingReverse) return existingReverse._id;
+
     return await ctx.db.insert("conversations", {
-      participantOne: args.currentClerkId,
-      participantTwo: args.otherClerkId,
+      participantOne: currentClerkId,
+      participantTwo: otherClerkId,
     });
   },
 });
 
-/** Returns all conversations for the current user with other user's details. */
+/**
+ * Returns all conversations for the current user with other user's profile.
+ */
 export const getUserConversations = query({
-  args: { clerkId: v.string() },
+  args: { currentClerkId: v.string() },
   handler: async (ctx, args) => {
+    const { currentClerkId } = args;
+
     const asOne = await ctx.db
       .query("conversations")
       .withIndex("by_participant_one", (q) =>
-        q.eq("participantOne", args.clerkId)
+        q.eq("participantOne", currentClerkId)
       )
       .collect();
 
     const asTwo = await ctx.db
       .query("conversations")
       .withIndex("by_participant_two", (q) =>
-        q.eq("participantTwo", args.clerkId)
+        q.eq("participantTwo", currentClerkId)
       )
       .collect();
 
@@ -61,7 +70,7 @@ export const getUserConversations = query({
     const withUsers = await Promise.all(
       all.map(async (conv) => {
         const otherClerkId =
-          conv.participantOne === args.clerkId
+          conv.participantOne === currentClerkId
             ? conv.participantTwo
             : conv.participantOne;
 

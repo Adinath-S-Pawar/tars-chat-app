@@ -5,17 +5,24 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { UserButton } from "@clerk/nextjs";
+import { useState } from "react";
 import styles from "./page.module.css";
 
 /**
- * Home page — shows all users and allows starting a conversation.
+ * Home page — shows all users with search and allows starting a conversation.
  */
 export default function Home() {
   useSyncUser();
   const { user } = useUser();
+  const [search, setSearch] = useState("");
+
   const users = useQuery(
     api.users.getAllUsers,
     user ? { currentClerkId: user.id } : "skip"
+  );
+
+  const filtered = users?.filter((u) =>
+    u.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -30,6 +37,8 @@ export default function Home() {
           <input
             type="text"
             placeholder="Search users..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className={styles.searchInput}
           />
         </div>
@@ -38,10 +47,13 @@ export default function Home() {
           {users === undefined && (
             <p className={styles.loadingText}>Loading users...</p>
           )}
-          {users?.length === 0 && (
-            <p className={styles.emptyText}>No other users found.</p>
+          {filtered?.length === 0 && search !== "" && (
+            <p className={styles.emptyText}>No users found for "{search}"</p>
           )}
-          {users?.map((u) => (
+          {filtered?.length === 0 && search === "" && (
+            <p className={styles.emptyText}>No other users registered yet.</p>
+          )}
+          {filtered?.map((u) => (
             <div key={u._id} className={styles.userItem}>
               <img
                 src={u.imageUrl}

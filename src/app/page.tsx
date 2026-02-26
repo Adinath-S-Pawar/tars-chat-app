@@ -8,6 +8,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { useSyncUser } from "@/hooks/useSyncUser";
 import { formatMessageTime } from "@/lib/formatTime";
 import { ArrowLeft } from "lucide-react";
+import { usePresence } from "@/hooks/usePresence";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -236,6 +237,18 @@ export default function Home() {
     u.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  usePresence(user?.id);
+
+  const allUserIds = allUsers?.map((u) => u.clerkId) ?? [];
+  const presenceRecords = useQuery(
+    api.presence.getPresence,
+    allUserIds.length > 0 ? { clerkIds: allUserIds } : "skip"
+  );
+
+  function isOnline(clerkId: string): boolean {
+    return presenceRecords?.some((p) => p?.clerkId === clerkId && p?.online) ?? false;
+  }
+
   async function handleSelectUser(otherUser: ConvUser) {
     if (!user) return;
     const convId = await getOrCreateConversation({
@@ -307,15 +320,17 @@ export default function Home() {
                   className={`flex items-center gap-3 px-4 py-2.5 text-left w-full transition-colors hover:bg-zinc-800 cursor-pointer ${activeConversationId === conv._id ? "bg-zinc-800" : ""
                     }`}
                 >
-                  <Avatar className="h-9 w-9 shrink-0">
-                    <AvatarImage
-                      src={conv.otherUser?.imageUrl}
-                      alt={conv.otherUser?.name}
-                    />
-                    <AvatarFallback className="bg-zinc-700 text-zinc-200 text-xs font-medium">
-                      {conv.otherUser ? getInitials(conv.otherUser.name) : "?"}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarImage src={conv.otherUser?.imageUrl} alt={conv.otherUser?.name} />
+                      <AvatarFallback className="bg-zinc-700 text-zinc-200 text-xs font-medium">
+                        {conv.otherUser ? getInitials(conv.otherUser.name) : "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    {conv.otherUser && isOnline(conv.otherUser.clerkId) && (
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
+                    )}
+                  </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-medium truncate">
                       {conv.otherUser?.name ?? "Unknown"}
@@ -361,12 +376,20 @@ export default function Home() {
                     : ""
                     }`}
                 >
-                  <Avatar className="h-9 w-9 shrink-0">
-                    <AvatarImage src={u.imageUrl} alt={u.name} />
-                    <AvatarFallback className="bg-zinc-700 text-zinc-200 text-xs font-medium">
-                      {getInitials(u.name)}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative">
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarImage src={u.imageUrl} alt={u.name} />
+                      <AvatarFallback className="bg-zinc-700 text-zinc-200 text-xs font-medium">
+                        {getInitials(u.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    {isOnline(u.clerkId) && (
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
+                    )}
+                  </div>
+                  ```
+                  ```
+                  git commit -m "feat: add green online indicator to user and conversation avatars"
                   <span className="text-sm font-medium truncate">{u.name}</span>
                 </button>
               ))}

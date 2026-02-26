@@ -81,7 +81,13 @@ export const getUserConversations = query({
 
         if (!otherUser) return null;
 
-        return { ...conv, otherUser };
+        const lastMessage = await ctx.db
+          .query("messages")
+          .withIndex("by_conversation", (q) => q.eq("conversationId", conv._id))
+          .order("desc")
+          .first();
+
+        return { ...conv, otherUser, lastMessage };
       })
     );
 

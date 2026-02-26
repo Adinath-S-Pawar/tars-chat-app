@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useSyncUser } from "@/hooks/useSyncUser";
+import { formatMessageTime } from "@/lib/formatTime";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -43,13 +44,6 @@ function getInitials(name: string): string {
     .join("")
     .toUpperCase()
     .slice(0, 2);
-}
-
-function formatTime(ms: number): string {
-  return new Date(ms).toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
 }
 
 /** Skeleton row for sidebar loading state */
@@ -112,14 +106,14 @@ function MessageList({ conversationId, currentClerkId }: MessageListProps) {
             >
               <div
                 className={`max-w-[70%] px-4 py-2 rounded-xl text-sm leading-relaxed ${isMine
-                    ? "bg-blue-600 text-white rounded-br-sm"
-                    : "bg-zinc-700 text-zinc-100 rounded-bl-sm"
+                  ? "bg-blue-600 text-white rounded-br-sm"
+                  : "bg-zinc-700 text-zinc-100 rounded-bl-sm"
                   }`}
               >
                 {msg.text}
               </div>
               <span className="text-[10px] text-zinc-500 mt-1 px-1">
-                {formatTime(msg._creationTime)}
+                {formatMessageTime(msg._creationTime)}
               </span>
             </div>
           );
@@ -301,7 +295,7 @@ export default function Home() {
                       {conv.otherUser?.name ?? "Unknown"}
                     </span>
                     <span className="text-xs text-zinc-500 truncate">
-                      No messages yet
+                      {conv.lastMessage ? conv.lastMessage.text : "No messages yet"}
                     </span>
                   </div>
                 </button>
@@ -337,8 +331,8 @@ export default function Home() {
                   key={u._id}
                   onClick={() => handleSelectUser(u)}
                   className={`flex items-center gap-3 px-4 py-2.5 text-left w-full transition-colors hover:bg-zinc-800 cursor-pointer ${activeOtherUser?._id === u._id && activeConversationId
-                      ? "bg-zinc-800"
-                      : ""
+                    ? "bg-zinc-800"
+                    : ""
                     }`}
                 >
                   <Avatar className="h-9 w-9 shrink-0">

@@ -7,6 +7,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useSyncUser } from "@/hooks/useSyncUser";
 import { formatMessageTime } from "@/lib/formatTime";
+import { ArrowLeft } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -134,9 +135,10 @@ interface ChatAreaProps {
   conversationId: Id<"conversations">;
   otherUser: ConvUser;
   currentClerkId: string;
+  onBack: () => void;
 }
 
-function ChatArea({ conversationId, otherUser, currentClerkId }: ChatAreaProps) {
+function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAreaProps) {
   const [text, setText] = useState("");
   const sendMessage = useMutation(api.messages.sendMessage);
 
@@ -158,6 +160,14 @@ function ChatArea({ conversationId, otherUser, currentClerkId }: ChatAreaProps) 
     <div className="flex flex-col h-full">
       {/* Top bar */}
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-800 bg-zinc-900 shrink-0">
+        {/* Back button — mobile only */}
+        <button
+          onClick={onBack}
+          className="md:hidden mr-1 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+          aria-label="Back to sidebar"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
         <Avatar className="h-9 w-9">
           <AvatarImage src={otherUser.imageUrl} alt={otherUser.name} />
           <AvatarFallback className="bg-zinc-700 text-zinc-200 text-xs font-medium">
@@ -206,6 +216,8 @@ export default function Home() {
     useState<Id<"conversations"> | null>(null);
   const [activeOtherUser, setActiveOtherUser] = useState<ConvUser | null>(null);
 
+  const chatOpen = activeConversationId !== null && activeOtherUser !== null;
+
   const getOrCreateConversation = useMutation(
     api.conversations.getOrCreateConversation
   );
@@ -239,10 +251,18 @@ export default function Home() {
     setActiveOtherUser(conv.otherUser);
   }
 
+  function handleBack() {
+    setActiveConversationId(null);
+    setActiveOtherUser(null);
+  }
+
   return (
     <div className="flex h-screen bg-zinc-950 text-white overflow-hidden">
-      {/* ── Sidebar ── */}
-      <aside className="w-80 flex flex-col border-r border-zinc-800 bg-zinc-900 shrink-0">
+      {/* ── Sidebar ── hidden on mobile when a chat is open */}
+      <aside
+        className={`w-full md:w-80 flex-col border-r border-zinc-800 bg-zinc-900 shrink-0 ${chatOpen ? "hidden md:flex" : "flex"
+          }`}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-4 border-b border-zinc-800">
           <h1 className="text-lg font-bold tracking-tight">ChatApp</h1>
@@ -355,9 +375,12 @@ export default function Home() {
         </ScrollArea>
       </aside>
 
-      {/* ── Main Chat Area ── */}
-      <main className="flex flex-1 flex-col bg-zinc-950 overflow-hidden">
-        {activeConversationId === null || activeOtherUser === null ? (
+      {/* ── Main Chat Area ── hidden on mobile when no chat is open */}
+      <main
+        className={`flex-col flex-1 bg-zinc-950 overflow-hidden ${chatOpen ? "flex" : "hidden md:flex"
+          }`}
+      >
+        {!chatOpen ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 text-zinc-600 select-none">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -384,10 +407,11 @@ export default function Home() {
           </div>
         ) : (
           <ChatArea
-            key={activeConversationId}
-            conversationId={activeConversationId}
-            otherUser={activeOtherUser}
+            key={activeConversationId!}
+            conversationId={activeConversationId!}
+            otherUser={activeOtherUser!}
             currentClerkId={user?.id ?? ""}
+            onBack={handleBack}
           />
         )}
       </main>

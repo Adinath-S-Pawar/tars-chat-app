@@ -79,10 +79,12 @@ export const getUserConversations = query({
           .withIndex("by_clerk_id", (q) => q.eq("clerkId", otherClerkId))
           .unique();
 
+        if (!otherUser) return null;
+
         return { ...conv, otherUser };
       })
     );
 
-    return withUsers;
+    return withUsers.filter(Boolean);
   },
 });

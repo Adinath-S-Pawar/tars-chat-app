@@ -24,7 +24,6 @@ export const upsertUser = mutation({
   },
 });
 
-
 export const getCurrentUser = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
@@ -32,5 +31,16 @@ export const getCurrentUser = query({
       .query("users")
       .withIndex("by_clerk_id", (q) => q.eq("clerkId", args.clerkId))
       .unique();
+  },
+});
+
+/**
+ * Returns all users except the currently logged-in user.
+ */
+export const getAllUsers = query({
+  args: { currentClerkId: v.string() },
+  handler: async (ctx, args) => {
+    const users = await ctx.db.query("users").collect();
+    return users.filter((u) => u.clerkId !== args.currentClerkId);
   },
 });

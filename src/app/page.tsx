@@ -27,6 +27,12 @@ type Conversation = {
   participantOne: string;
   participantTwo: string;
   otherUser: ConvUser;
+  lastMessage?: {
+    _id: Id<"messages">;
+    text: string;
+    senderId: string;
+    _creationTime: number;
+  } | null;
 };
 
 type Message = {

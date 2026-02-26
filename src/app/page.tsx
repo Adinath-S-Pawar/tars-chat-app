@@ -387,9 +387,6 @@ export default function Home() {
                       <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
                     )}
                   </div>
-                  ```
-                  ```
-                  git commit -m "feat: add green online indicator to user and conversation avatars"
                   <span className="text-sm font-medium truncate">{u.name}</span>
                 </button>
               ))}

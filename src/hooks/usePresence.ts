@@ -1,40 +1,48 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useCallback } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 
 /**
  * Sets user as online on mount and offline on unmount.
- * Also sets offline when the browser tab is closed or hidden.
+ * Sends a heartbeat every 30 seconds to maintain online status.
  */
 export function usePresence(clerkId: string | undefined) {
-  const setPresence = useMutation(api.presence.setPresence);
+  const setPresenceMutation = useMutation(api.presence.setPresence);
+
+  const setOnline = useCallback(() => {
+    if (!clerkId) return;
+    setPresenceMutation({ clerkId, online: true });
+  }, [clerkId, setPresenceMutation]);
+
+  const setOffline = useCallback(() => {
+    if (!clerkId) return;
+    setPresenceMutation({ clerkId, online: false });
+  }, [clerkId, setPresenceMutation]);
 
   useEffect(() => {
     if (!clerkId) return;
 
-    setPresence({ clerkId, online: true });
+    setOnline();
+
+    const heartbeat = setInterval(setOnline, 30000);
 
     function handleVisibilityChange() {
       if (document.visibilityState === "hidden") {
-        setPresence({ clerkId: clerkId!, online: false });
+        setOffline();
       } else {
-        setPresence({ clerkId: clerkId!, online: true });
+        setOnline();
       }
     }
 
-    function handleBeforeUnload() {
-      setPresence({ clerkId: clerkId!, online: false });
-    }
-
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("beforeunload", setOffline);
 
     return () => {
-      setPresence({ clerkId: clerkId!, online: false });
+      clearInterval(heartbeat);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("beforeunload", setOffline);
     };
-  }, [clerkId, setPresence]);
+  }, [clerkId, setOnline, setOffline]);
 }

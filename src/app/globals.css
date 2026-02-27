@@ -49,45 +49,47 @@
 
 :root {
   --radius: 0.625rem;
-  /* Dark theme defaults — no light mode override needed */
-  --background: oklch(0.09 0.02 264);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.12 0.03 265);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.12 0.03 265);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.18 0.025 260);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.18 0.025 260);
-  --muted-foreground: oklch(0.6 0.04 256);
-  --accent: oklch(0.18 0.025 260);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
+  /* Classic Discord theme */
+  --background: #36393e;
+  --foreground: #dcddde;
+  --card: #2f3136;
+  --card-foreground: #dcddde;
+  --popover: #2f3136;
+  --popover-foreground: #dcddde;
+  --primary: #7289da;
+  --primary-foreground: #ffffff;
+  --secondary: #40444b;
+  --secondary-foreground: #dcddde;
+  --muted: #40444b;
+  --muted-foreground: #72767d;
+  --accent: #40444b;
+  --accent-foreground: #dcddde;
+  --destructive: #f04747;
+  --border: #202225;
+  --input: #40444b;
+  --ring: #7289da;
+  --chart-1: #7289da;
+  --chart-2: #43b581;
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.12 0.03 265);
-  --sidebar-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.18 0.025 260);
-  --sidebar-accent-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.551 0.027 264.364);
+  --chart-5: #f04747;
+  --sidebar: #2f3136;
+  --sidebar-foreground: #dcddde;
+  --sidebar-primary: #7289da;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #40444b;
+  --sidebar-accent-foreground: #dcddde;
+  --sidebar-border: #202225;
+  --sidebar-ring: #7289da;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
-    @apply bg-background text-foreground;
+    background-color: #36393e;
+    color: #dcddde;
   }
 }

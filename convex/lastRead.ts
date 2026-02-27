@@ -65,6 +65,8 @@ export const getUnreadCount = query({
 export const getAllUnreadCounts = query({
   args: { clerkId: v.string() },
   handler: async (ctx, args) => {
+    const counts: Record<string, number> = {};
+
     const lastReadRecords = await ctx.db
       .query("lastRead")
       .collect();
@@ -73,24 +75,22 @@ export const getAllUnreadCounts = query({
       (r) => r.clerkId === args.clerkId
     );
 
-    const counts: Record<string, number> = {};
-
-    await Promise.all(
-      userRecords.map(async (record) => {
-        const messages = await ctx.db
-          .query("messages")
-          .withIndex("by_conversation", (q) =>
-            q.eq("conversationId", record.conversationId)
-          )
-          .collect();
-
-        counts[record.conversationId] = messages.filter(
-          (m) =>
-            m._creationTime > record.lastReadTime &&
-            m.senderId !== args.clerkId
-        ).length;
-      })
+    const recordMap = new Map(
+      userRecords.map((r) => [r.conversationId, r.lastReadTime])
     );
+
+    const allMessages = await ctx.db.query("messages").collect();
+
+    for (const msg of allMessages) {
+      if (msg.senderId === args.clerkId) continue;
+
+      const lastReadTime = recordMap.get(msg.conversationId) ?? 0;
+
+      if (msg._creationTime > lastReadTime) {
+        const key = msg.conversationId;
+        counts[key] = (counts[key] ?? 0) + 1;
+      }
+    }
 
     return counts;
   },

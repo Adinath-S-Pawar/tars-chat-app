@@ -60,10 +60,10 @@ function getInitials(name: string): string {
 function SkeletonRow() {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 animate-pulse">
-      <div className="h-9 w-9 rounded-full bg-zinc-700 shrink-0" />
+      <div className="h-9 w-9 rounded-full bg-[#3f4147] shrink-0" />
       <div className="flex flex-col gap-1.5 flex-1">
-        <div className="h-3.5 w-28 rounded bg-zinc-700" />
-        <div className="h-3 w-20 rounded bg-zinc-800" />
+        <div className="h-3.5 w-28 rounded bg-[#3f4147]" />
+        <div className="h-3 w-20 rounded bg-[#383a40]" />
       </div>
     </div>
   );
@@ -91,27 +91,27 @@ function MessageList({ conversationId, currentClerkId }: MessageListProps) {
 
   const isInitialLoad = useRef(true);
 
-useEffect(() => {
-  if (!messages) return;
+  useEffect(() => {
+    if (!messages) return;
 
-  if (isInitialLoad.current) {
-    scrollToBottom("instant");
-    isInitialLoad.current = false;
+    if (isInitialLoad.current) {
+      scrollToBottom("instant");
+      isInitialLoad.current = false;
+      prevMessageCountRef.current = messages.length;
+      return;
+    }
+
+    const newMessageArrived = messages.length > prevMessageCountRef.current;
     prevMessageCountRef.current = messages.length;
-    return;
-  }
 
-  const newMessageArrived = messages.length > prevMessageCountRef.current;
-  prevMessageCountRef.current = messages.length;
+    if (!newMessageArrived) return;
 
-  if (!newMessageArrived) return;
-
-  if (isUserScrolledUp) {
-    setShowNewMessages(true);
-  } else {
-    scrollToBottom("smooth");
-  }
-}, [messages, isUserScrolledUp]);
+    if (isUserScrolledUp) {
+      setShowNewMessages(true);
+    } else {
+      scrollToBottom("smooth");
+    }
+  }, [messages, isUserScrolledUp]);
 
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;
@@ -125,8 +125,8 @@ useEffect(() => {
   if (messages === undefined) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-zinc-500">
-          <div className="h-8 w-8 rounded-full border-2 border-zinc-600 border-t-zinc-400 animate-spin" />
+        <div className="flex flex-col items-center gap-3 text-[#949ba4]">
+          <div className="h-8 w-8 rounded-full border-2 border-[#3f4147] border-t-[#5865f2] animate-spin" />
           <span className="text-sm">Loading messages…</span>
         </div>
       </div>
@@ -136,7 +136,7 @@ useEffect(() => {
   if (messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-sm text-zinc-500">No messages yet. Say hello! 👋</p>
+        <p className="text-sm text-[#949ba4]">No messages yet. Say hello! 👋</p>
       </div>
     );
   }
@@ -157,15 +157,14 @@ useEffect(() => {
                 className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
               >
                 <div
-                  className={`max-w-[70%] px-4 py-2 rounded-xl text-sm leading-relaxed ${
-                    isMine
-                      ? "bg-blue-600 text-white rounded-br-sm"
-                      : "bg-zinc-700 text-zinc-100 rounded-bl-sm"
-                  }`}
+                  className={`max-w-[70%] px-4 py-2 rounded-xl text-sm leading-relaxed ${isMine
+                      ? "bg-[#5865f2] text-white rounded-br-sm"
+                      : "bg-[#404249] text-white rounded-bl-sm"
+                    }`}
                 >
                   {msg.text}
                 </div>
-                <span className="text-[10px] text-zinc-500 mt-1 px-1">
+                <span className="text-[10px] text-[#949ba4] mt-1 px-1">
                   {formatMessageTime(msg._creationTime)}
                 </span>
               </div>
@@ -182,7 +181,7 @@ useEffect(() => {
             setShowNewMessages(false);
             setIsUserScrolledUp(false);
           }}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transition-colors"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transition-colors"
         >
           ↓ New messages
         </button>
@@ -257,26 +256,26 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-800 bg-zinc-900 shrink-0">
+      <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#3f4147] bg-[#36393f] shrink-0">
         <button
           onClick={onBack}
-          className="md:hidden mr-1 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+          className="md:hidden mr-1 p-1.5 rounded-lg text-[#949ba4] hover:text-[#dbdee1] hover:bg-[#383a40] transition-colors"
           aria-label="Back to sidebar"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
         <Avatar className="h-9 w-9">
           <AvatarImage src={otherUser.imageUrl} alt={otherUser.name} />
-          <AvatarFallback className="bg-zinc-700 text-zinc-200 text-xs font-medium">
+          <AvatarFallback className="bg-[#383a40] text-[#dbdee1] text-xs font-medium">
             {getInitials(otherUser.name)}
           </AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-sm font-semibold">{otherUser.name}</p>
+          <p className="text-sm font-semibold text-[#dbdee1]">{otherUser.name}</p>
           {isTyping ? (
-            <p className="text-xs text-green-400 animate-pulse">typing...</p>
+            <p className="text-xs text-[#23a55a] animate-pulse">typing...</p>
           ) : (
-            <p className="text-xs text-zinc-400">{otherUser.email}</p>
+            <p className="text-xs text-[#949ba4]">{otherUser.email}</p>
           )}
         </div>
       </div>
@@ -288,7 +287,7 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
       />
 
       {/* Input area */}
-      <div className="flex items-center gap-2 px-4 py-3 border-t border-zinc-800 bg-zinc-900 shrink-0">
+      <div className="flex items-center gap-2 px-4 py-3 border-t border-[#3f4147] bg-[#36393f] shrink-0">
         <Input
           value={text}
           onChange={(e) => {
@@ -302,12 +301,12 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
             clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
           }}
           placeholder="Type a message…"
-          className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-zinc-600"
+          className="flex-1 bg-[#26282d] border-[#3f4147] text-[#dbdee1] placeholder:text-[#949ba4] focus-visible:ring-[#5865f2]"
         />
         <Button
           onClick={handleSend}
           disabled={!text.trim()}
-          className="bg-blue-600 hover:bg-blue-500 text-white px-4 shrink-0 disabled:opacity-40"
+          className="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 shrink-0 disabled:opacity-40"
         >
           Send
         </Button>
@@ -347,6 +346,12 @@ export default function Home() {
 
   usePresence(user?.id);
 
+  useEffect(() => {
+  if (activeConversationId && user) {
+    markAsRead({ conversationId: activeConversationId, clerkId: user.id });
+  }
+}, [activeConversationId, user]);
+
   const allUserIds = allUsers?.map((u) => u.clerkId) ?? [];
   const presenceRecords = useQuery(
     api.presence.getPresence,
@@ -356,6 +361,8 @@ export default function Home() {
   function isOnline(clerkId: string): boolean {
     return presenceRecords?.some((p) => p?.clerkId === clerkId && p?.online) ?? false;
   }
+
+  const markAsRead = useMutation(api.lastRead.markAsRead);
 
   async function handleSelectUser(otherUser: ConvUser) {
     if (!user) return;
@@ -384,36 +391,34 @@ export default function Home() {
     user ? { clerkId: user.id } : "skip"
   );
 
-  const markAsRead = useMutation(api.lastRead.markAsRead);
-
   return (
-    <div className="flex h-screen bg-zinc-950 text-white overflow-hidden">
+    <div className="flex h-screen bg-[#36393f] text-white overflow-hidden">
       {/* ── Sidebar ── hidden on mobile when a chat is open */}
       <aside
-        className={`w-full md:w-80 flex-col border-r border-zinc-800 bg-zinc-900 shrink-0 ${chatOpen ? "hidden md:flex" : "flex"
+        className={`w-full md:w-80 flex-col border-r border-[#3f4147] bg-[#2b2d31] shrink-0 ${chatOpen ? "hidden md:flex" : "flex"
           }`}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-zinc-800">
-          <h1 className="text-lg font-bold tracking-tight">ChatApp</h1>
+        <div className="flex items-center justify-between px-4 py-4 border-b border-[#3f4147]">
+          <h1 className="text-lg font-bold tracking-tight text-[#dbdee1]">ChatApp</h1>
           <UserButton />
         </div>
 
         {/* Search */}
-        <div className="px-4 py-3 border-b border-zinc-800">
+        <div className="px-4 py-3 border-b border-[#3f4147]">
           <Input
             type="text"
             placeholder="Search users…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-zinc-600"
+            className="bg-[#1e1f22] border-[#3f4147] text-[#dbdee1] placeholder:text-[#949ba4] focus-visible:ring-[#5865f2]"
           />
         </div>
 
         <ScrollArea className="flex-1">
           {/* ── Conversations Section ── */}
           <div className="px-4 pt-4 pb-1">
-            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#949ba4]">
               Conversations
             </p>
           </div>
@@ -425,41 +430,39 @@ export default function Home() {
               ))}
             </div>
           ) : conversations.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-zinc-500">
-              No conversations yet.
-            </p>
+            <p className="px-4 py-3 text-sm text-[#949ba4]">No conversations yet.</p>
           ) : (
             <div className="flex flex-col py-1">
               {conversations.map((conv) => (
                 <button
                   key={conv._id}
                   onClick={() => handleSelectConversation(conv)}
-                  className={`flex items-center gap-3 px-4 py-2.5 text-left w-full transition-colors hover:bg-zinc-800 cursor-pointer ${activeConversationId === conv._id ? "bg-zinc-800" : ""
+                  className={`flex items-center gap-3 px-4 py-2.5 text-left w-full transition-colors hover:bg-[#383a40] cursor-pointer ${activeConversationId === conv._id ? "bg-[#383a40]" : ""
                     }`}
                 >
                   <div className="relative">
                     <Avatar className="h-9 w-9 shrink-0">
                       <AvatarImage src={conv.otherUser?.imageUrl} alt={conv.otherUser?.name} />
-                      <AvatarFallback className="bg-zinc-700 text-zinc-200 text-xs font-medium">
+                      <AvatarFallback className="bg-[#383a40] text-[#dbdee1] text-xs font-medium">
                         {conv.otherUser ? getInitials(conv.otherUser.name) : "?"}
                       </AvatarFallback>
                     </Avatar>
                     {conv.otherUser && isOnline(conv.otherUser.clerkId) && (
-                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#23a55a] ring-2 ring-[#2b2d31]" />
                     )}
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium truncate">
+                      <span className="text-sm font-medium truncate text-[#dbdee1]">
                         {conv.otherUser?.name ?? "Unknown"}
                       </span>
                       {unreadCounts && unreadCounts[conv._id] > 0 && (
-                        <Badge className="bg-blue-600 text-white text-[10px] h-5 min-w-5 flex items-center justify-center rounded-full px-1.5 ml-2 shrink-0">
+                        <Badge className="bg-[#f23f43] text-white text-[10px] h-5 min-w-5 flex items-center justify-center rounded-full px-1.5 ml-2 shrink-0">
                           {unreadCounts[conv._id] > 99 ? "99+" : unreadCounts[conv._id]}
                         </Badge>
                       )}
                     </div>
-                    <span className="text-xs text-zinc-500 truncate">
+                    <span className="text-xs text-[#949ba4] truncate">
                       {conv.lastMessage ? conv.lastMessage.text : "No messages yet"}
                     </span>
                   </div>
@@ -469,12 +472,12 @@ export default function Home() {
           )}
 
           <div className="px-4 py-2">
-            <Separator className="bg-zinc-800" />
+            <Separator className="bg-[#3f4147]" />
           </div>
 
           {/* ── Users Section ── */}
           <div className="px-4 pt-1 pb-1">
-            <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#949ba4]">
               Users
             </p>
           </div>
@@ -486,7 +489,7 @@ export default function Home() {
               ))}
             </div>
           ) : filteredUsers?.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-zinc-500">
+            <p className="px-4 py-3 text-sm text-[#949ba4]">
               {search ? `No users found for "${search}"` : "No other users yet."}
             </p>
           ) : (
@@ -495,23 +498,23 @@ export default function Home() {
                 <button
                   key={u._id}
                   onClick={() => handleSelectUser(u)}
-                  className={`flex items-center gap-3 px-4 py-2.5 text-left w-full transition-colors hover:bg-zinc-800 cursor-pointer ${activeOtherUser?._id === u._id && activeConversationId
-                    ? "bg-zinc-800"
-                    : ""
+                  className={`flex items-center gap-3 px-4 py-2.5 text-left w-full transition-colors hover:bg-[#383a40] cursor-pointer ${activeOtherUser?._id === u._id && activeConversationId
+                      ? "bg-[#383a40]"
+                      : ""
                     }`}
                 >
                   <div className="relative">
                     <Avatar className="h-9 w-9 shrink-0">
                       <AvatarImage src={u.imageUrl} alt={u.name} />
-                      <AvatarFallback className="bg-zinc-700 text-zinc-200 text-xs font-medium">
+                      <AvatarFallback className="bg-[#383a40] text-[#dbdee1] text-xs font-medium">
                         {getInitials(u.name)}
                       </AvatarFallback>
                     </Avatar>
                     {isOnline(u.clerkId) && (
-                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
+                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-[#23a55a] ring-2 ring-[#2b2d31]" />
                     )}
                   </div>
-                  <span className="text-sm font-medium truncate">{u.name}</span>
+                  <span className="text-sm font-medium truncate text-[#dbdee1]">{u.name}</span>
                 </button>
               ))}
             </div>
@@ -521,11 +524,11 @@ export default function Home() {
 
       {/* ── Main Chat Area ── hidden on mobile when no chat is open */}
       <main
-        className={`flex-col flex-1 bg-zinc-950 overflow-hidden ${chatOpen ? "flex" : "hidden md:flex"
+        className={`flex-col flex-1 bg-[#36393f] overflow-hidden ${chatOpen ? "flex" : "hidden md:flex"
           }`}
       >
         {!chatOpen ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-4 text-zinc-600 select-none">
+          <div className="flex flex-1 flex-col items-center justify-center gap-4 text-[#949ba4] select-none">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="56"
@@ -541,10 +544,10 @@ export default function Home() {
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             <div className="text-center space-y-1">
-              <p className="text-base font-semibold text-zinc-400">
+              <p className="text-base font-semibold text-[#dbdee1]">
                 No conversation selected
               </p>
-              <p className="text-sm text-zinc-600">
+              <p className="text-sm text-[#949ba4]">
                 Pick a user or conversation from the sidebar to start chatting.
               </p>
             </div>

@@ -2,7 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
- * Typing indicator using a simple upsert approach.
+ * Typing indicators functionality - allows users to see when the other participant is typing.
  */
 
 export const setTyping = mutation({

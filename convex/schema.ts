@@ -39,4 +39,10 @@ export default defineSchema({
 }).index("by_conversation", ["conversationId"])
   .index("by_conversation_and_user", ["conversationId", "clerkId"]),
 
+  lastRead: defineTable({
+    conversationId: v.id("conversations"),
+    clerkId: v.string(),
+    lastReadTime: v.number(),
+  }).index("by_conversation_and_user", ["conversationId", "clerkId"]),
+
 });

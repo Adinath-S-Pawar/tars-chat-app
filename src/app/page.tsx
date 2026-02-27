@@ -164,7 +164,7 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
     typingTimeoutRef.current = setTimeout(() => {
   setIsTypingLocal(false);
   clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
-}, 5000);
+}, 10000);
   }, [conversationId, currentClerkId, setTyping, clearTyping, isTypingLocal]);
 
   async function handleSend() {

@@ -60,3 +60,38 @@ export const getUnreadCount = query({
     ).length;
   },
 });
+
+/** Returns unread counts for all conversations for current user. */
+export const getAllUnreadCounts = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, args) => {
+    const lastReadRecords = await ctx.db
+      .query("lastRead")
+      .collect();
+
+    const userRecords = lastReadRecords.filter(
+      (r) => r.clerkId === args.clerkId
+    );
+
+    const counts: Record<string, number> = {};
+
+    await Promise.all(
+      userRecords.map(async (record) => {
+        const messages = await ctx.db
+          .query("messages")
+          .withIndex("by_conversation", (q) =>
+            q.eq("conversationId", record.conversationId)
+          )
+          .collect();
+
+        counts[record.conversationId] = messages.filter(
+          (m) =>
+            m._creationTime > record.lastReadTime &&
+            m.senderId !== args.clerkId
+        ).length;
+      })
+    );
+
+    return counts;
+  },
+});

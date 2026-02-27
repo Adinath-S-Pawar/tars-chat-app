@@ -80,10 +80,41 @@ function MessageList({ conversationId, currentClerkId }: MessageListProps) {
     | undefined;
 
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [showNewMessages, setShowNewMessages] = useState(false);
+  const [isUserScrolledUp, setIsUserScrolledUp] = useState(false);
+  const prevMessageCountRef = useRef(0);
+
+  function scrollToBottom(behavior: ScrollBehavior = "smooth") {
+    bottomRef.current?.scrollIntoView({ behavior });
+  }
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (!messages) return;
+
+    const newMessageArrived = messages.length > prevMessageCountRef.current;
+    prevMessageCountRef.current = messages.length;
+
+    if (!newMessageArrived) {
+      scrollToBottom("instant");
+      return;
+    }
+
+    if (isUserScrolledUp) {
+      setShowNewMessages(true);
+    } else {
+      scrollToBottom("smooth");
+    }
+  }, [messages, isUserScrolledUp]);
+
+  function handleScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const scrolledUp = distanceFromBottom > 100;
+
+    setIsUserScrolledUp(scrolledUp);
+    if (!scrolledUp) setShowNewMessages(false);
+  }
 
   if (messages === undefined) {
     return (
@@ -105,32 +136,52 @@ function MessageList({ conversationId, currentClerkId }: MessageListProps) {
   }
 
   return (
-    <ScrollArea className="flex-1 px-4 py-3">
-      <div className="flex flex-col gap-2">
-        {messages.map((msg) => {
-          const isMine = msg.senderId === currentClerkId;
-          return (
-            <div
-              key={msg._id}
-              className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
-            >
+    <div className="relative flex-1 overflow-hidden">
+      <div
+        ref={scrollAreaRef}
+        onScroll={handleScroll}
+        className="h-full overflow-y-auto px-4 py-3"
+      >
+        <div className="flex flex-col gap-2">
+          {messages.map((msg) => {
+            const isMine = msg.senderId === currentClerkId;
+            return (
               <div
-                className={`max-w-[70%] px-4 py-2 rounded-xl text-sm leading-relaxed ${isMine
-                  ? "bg-blue-600 text-white rounded-br-sm"
-                  : "bg-zinc-700 text-zinc-100 rounded-bl-sm"
-                  }`}
+                key={msg._id}
+                className={`flex flex-col ${isMine ? "items-end" : "items-start"}`}
               >
-                {msg.text}
+                <div
+                  className={`max-w-[70%] px-4 py-2 rounded-xl text-sm leading-relaxed ${
+                    isMine
+                      ? "bg-blue-600 text-white rounded-br-sm"
+                      : "bg-zinc-700 text-zinc-100 rounded-bl-sm"
+                  }`}
+                >
+                  {msg.text}
+                </div>
+                <span className="text-[10px] text-zinc-500 mt-1 px-1">
+                  {formatMessageTime(msg._creationTime)}
+                </span>
               </div>
-              <span className="text-[10px] text-zinc-500 mt-1 px-1">
-                {formatMessageTime(msg._creationTime)}
-              </span>
-            </div>
-          );
-        })}
-        <div ref={bottomRef} />
+            );
+          })}
+          <div ref={bottomRef} />
+        </div>
       </div>
-    </ScrollArea>
+
+      {showNewMessages && (
+        <button
+          onClick={() => {
+            scrollToBottom("smooth");
+            setShowNewMessages(false);
+            setIsUserScrolledUp(false);
+          }}
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-blue-600 hover:bg-blue-500 text-white text-xs px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transition-colors"
+        >
+          ↓ New messages
+        </button>
+      )}
+    </div>
   );
 }
 

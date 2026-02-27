@@ -89,23 +89,29 @@ function MessageList({ conversationId, currentClerkId }: MessageListProps) {
     bottomRef.current?.scrollIntoView({ behavior });
   }
 
-  useEffect(() => {
-    if (!messages) return;
+  const isInitialLoad = useRef(true);
 
-    const newMessageArrived = messages.length > prevMessageCountRef.current;
+useEffect(() => {
+  if (!messages) return;
+
+  if (isInitialLoad.current) {
+    scrollToBottom("instant");
+    isInitialLoad.current = false;
     prevMessageCountRef.current = messages.length;
+    return;
+  }
 
-    if (!newMessageArrived) {
-      scrollToBottom("instant");
-      return;
-    }
+  const newMessageArrived = messages.length > prevMessageCountRef.current;
+  prevMessageCountRef.current = messages.length;
 
-    if (isUserScrolledUp) {
-      setShowNewMessages(true);
-    } else {
-      scrollToBottom("smooth");
-    }
-  }, [messages, isUserScrolledUp]);
+  if (!newMessageArrived) return;
+
+  if (isUserScrolledUp) {
+    setShowNewMessages(true);
+  } else {
+    scrollToBottom("smooth");
+  }
+}, [messages, isUserScrolledUp]);
 
   function handleScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;

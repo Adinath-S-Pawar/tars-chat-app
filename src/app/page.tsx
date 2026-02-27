@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback, Component } from "react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { useSyncUser } from "@/hooks/useSyncUser";
 import { formatMessageTime } from "@/lib/formatTime";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Send } from "lucide-react";
 import { usePresence } from "@/hooks/usePresence";
-import { useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
 
 import { Input } from "@/components/ui/input";
@@ -17,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+
+/* -----------------------Types-----------------------*/
 
 type ConvUser = {
   _id: Id<"users">;
@@ -47,6 +48,8 @@ type Message = {
   _creationTime: number;
 };
 
+/*-----------------------Helpers-----------------------*/
+
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -56,28 +59,133 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-/** Skeleton row for sidebar loading state */
+/*-----------------------Error Boundary-----------------------*/
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends Component<
+  { children: React.ReactNode },
+  ErrorBoundaryState
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): ErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-screen items-center justify-center bg-[#36393f]">
+          <div className="flex flex-col items-center gap-4 text-center px-6">
+            <div className="h-14 w-14 rounded-full bg-[#f23f43]/10 flex items-center justify-center">
+              <span className="text-2xl">⚠️</span>
+            </div>
+            <p className="text-[#dbdee1] font-semibold text-lg">
+              Something went wrong.
+            </p>
+            <p className="text-[#949ba4] text-sm max-w-xs">
+              An unexpected error occurred. Please refresh to try again.
+            </p>
+            <Button
+              onClick={() => window.location.reload()}
+              className="bg-[#5865f2] hover:bg-[#4752c4] text-white px-6 mt-2"
+            >
+              Refresh
+            </Button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+/*-----------------------Full-page Loading Skeleton-----------------------*/
+
+function FullPageSkeleton() {
+  return (
+    <div className="flex h-screen bg-[#36393f] overflow-hidden animate-pulse">
+      {/* Sidebar skeleton */}
+      <div className="hidden md:flex w-80 flex-col border-r border-[#3f4147] bg-[#2b2d31] shrink-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-4 border-b border-[#3f4147]">
+          <div className="h-5 w-24 rounded bg-[#3f4147]" />
+          <div className="h-8 w-8 rounded-full bg-[#3f4147]" />
+        </div>
+        {/* Search */}
+        <div className="px-4 py-3 border-b border-[#3f4147]">
+          <div className="h-9 rounded-md bg-[#1e1f22]" />
+        </div>
+        {/* List items */}
+        <div className="flex flex-col gap-1 p-2 mt-2">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex items-center gap-3 px-3 py-2.5">
+              <div className="h-9 w-9 rounded-full bg-[#3f4147] shrink-0" />
+              <div className="flex flex-col gap-1.5 flex-1">
+                <div className="h-3.5 w-28 rounded bg-[#3f4147]" />
+                <div className="h-3 w-20 rounded bg-[#36393f]" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Main area skeleton */}
+      <div className="flex-1 flex flex-col">
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#3f4147]">
+          <div className="h-9 w-9 rounded-full bg-[#3f4147]" />
+          <div className="flex flex-col gap-1.5">
+            <div className="h-4 w-32 rounded bg-[#3f4147]" />
+            <div className="h-3 w-20 rounded bg-[#36393f]" />
+          </div>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-2 px-4 py-3 border-t border-[#3f4147]">
+          <div className="flex-1 h-9 rounded-md bg-[#26282d]" />
+          <div className="h-9 w-9 rounded-md bg-[#3f4147]" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/*-----------------------Sidebar Skeleton Row-----------------------*/
+
 function SkeletonRow() {
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 animate-pulse">
       <div className="h-9 w-9 rounded-full bg-[#3f4147] shrink-0" />
       <div className="flex flex-col gap-1.5 flex-1">
         <div className="h-3.5 w-28 rounded bg-[#3f4147]" />
-        <div className="h-3 w-20 rounded bg-[#383a40]" />
+        <div className="h-3 w-20 rounded bg-[#36393f]" />
       </div>
     </div>
   );
 }
 
+/*Message List*/
+
 interface MessageListProps {
   conversationId: Id<"conversations">;
   currentClerkId: string;
+  onNewMessage: () => void;
 }
 
-function MessageList({ conversationId, currentClerkId }: MessageListProps) {
+function MessageList({ conversationId, currentClerkId, onNewMessage }: MessageListProps) {
   const messages = useQuery(api.messages.getMessages, { conversationId }) as
     | Message[]
     | undefined;
+
+  useEffect(() => {
+    if (messages && messages.length > 0) {
+      onNewMessage();
+    }
+  }, [messages]);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -143,6 +251,9 @@ function MessageList({ conversationId, currentClerkId }: MessageListProps) {
 
   return (
     <div className="relative flex-1 overflow-hidden">
+      {/* Gradient fade at top */}
+      <div className="pointer-events-none absolute top-0 left-0 right-0 h-6 bg-gradient-to-b from-[#36393f] to-transparent z-10" />
+
       <div
         ref={scrollAreaRef}
         onScroll={handleScroll}
@@ -181,7 +292,7 @@ function MessageList({ conversationId, currentClerkId }: MessageListProps) {
             setShowNewMessages(false);
             setIsUserScrolledUp(false);
           }}
-          className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transition-colors"
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs px-4 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 transition-colors z-20"
         >
           ↓ New messages
         </button>
@@ -189,6 +300,8 @@ function MessageList({ conversationId, currentClerkId }: MessageListProps) {
     </div>
   );
 }
+
+/*-----------------------Chat Area-----------------------*/
 
 interface ChatAreaProps {
   conversationId: Id<"conversations">;
@@ -254,7 +367,7 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
   const isTyping = typingUsers && typingUsers.length > 0;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full transition-opacity duration-200 ease-in-out animate-in fade-in">
       {/* Top bar */}
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-[#3f4147] bg-[#36393f] shrink-0">
         <button
@@ -264,18 +377,18 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <Avatar className="h-9 w-9">
+        <Avatar className="h-9 w-9 shrink-0 overflow-hidden">
           <AvatarImage src={otherUser.imageUrl} alt={otherUser.name} />
           <AvatarFallback className="bg-[#383a40] text-[#dbdee1] text-xs font-medium">
             {getInitials(otherUser.name)}
           </AvatarFallback>
         </Avatar>
-        <div>
-          <p className="text-sm font-semibold text-[#dbdee1]">{otherUser.name}</p>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-[#dbdee1] truncate">{otherUser.name}</p>
           {isTyping ? (
             <p className="text-xs text-[#23a55a] animate-pulse">typing...</p>
           ) : (
-            <p className="text-xs text-[#949ba4]">{otherUser.email}</p>
+            <p className="text-xs text-[#949ba4] truncate">{otherUser.email}</p>
           )}
         </div>
       </div>
@@ -284,10 +397,15 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
       <MessageList
         conversationId={conversationId}
         currentClerkId={currentClerkId}
+        onNewMessage={() => {
+          if (currentClerkId) {
+            markAsRead({ conversationId, clerkId: currentClerkId });
+          }
+        }}
       />
 
-      {/* Input area */}
-      <div className="flex items-center gap-2 px-4 py-3 border-t border-[#3f4147] bg-[#36393f] shrink-0">
+      {/* Input area for mobile keyboard */}
+      <div className="flex items-center gap-2 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-[#3f4147] bg-[#36393f] shrink-0">
         <Input
           value={text}
           onChange={(e) => {
@@ -306,18 +424,22 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
         <Button
           onClick={handleSend}
           disabled={!text.trim()}
-          className="bg-[#5865f2] hover:bg-[#4752c4] text-white px-4 shrink-0 disabled:opacity-40"
+          size="icon"
+          title="Send message"
+          className="bg-[#5865f2] hover:bg-[#4752c4] text-white h-9 w-9 shrink-0 disabled:opacity-40"
         >
-          Send
+          <Send className="h-4 w-4" />
         </Button>
       </div>
     </div>
   );
 }
 
-export default function Home() {
+/*-----------------------Main Page-----------------------*/
+
+function HomeContent() {
   useSyncUser();
-  const { user } = useUser();
+  const { user, isLoaded: isUserLoaded } = useUser();
 
   const [search, setSearch] = useState("");
   const [activeConversationId, setActiveConversationId] =
@@ -346,11 +468,13 @@ export default function Home() {
 
   usePresence(user?.id);
 
+  const markAsRead = useMutation(api.lastRead.markAsRead);
+
   useEffect(() => {
-  if (activeConversationId && user) {
-    markAsRead({ conversationId: activeConversationId, clerkId: user.id });
-  }
-}, [activeConversationId, user]);
+    if (activeConversationId && user) {
+      markAsRead({ conversationId: activeConversationId, clerkId: user.id });
+    }
+  }, [activeConversationId, user]);
 
   const allUserIds = allUsers?.map((u) => u.clerkId) ?? [];
   const presenceRecords = useQuery(
@@ -361,8 +485,6 @@ export default function Home() {
   function isOnline(clerkId: string): boolean {
     return presenceRecords?.some((p) => p?.clerkId === clerkId && p?.online) ?? false;
   }
-
-  const markAsRead = useMutation(api.lastRead.markAsRead);
 
   async function handleSelectUser(otherUser: ConvUser) {
     if (!user) return;
@@ -391,6 +513,11 @@ export default function Home() {
     user ? { clerkId: user.id } : "skip"
   );
 
+  /* Show full-page skeleton while Clerk is still loading */
+  if (!isUserLoaded) {
+    return <FullPageSkeleton />;
+  }
+
   return (
     <div className="flex h-screen bg-[#36393f] text-white overflow-hidden">
       {/* ── Sidebar ── hidden on mobile when a chat is open */}
@@ -416,7 +543,7 @@ export default function Home() {
         </div>
 
         <ScrollArea className="flex-1">
-          {/* ── Conversations Section ── */}
+          {/* Conversations Section */}
           <div className="px-4 pt-4 pb-1">
             <p className="text-xs font-semibold uppercase tracking-widest text-[#949ba4]">
               Conversations
@@ -440,8 +567,8 @@ export default function Home() {
                   className={`flex items-center gap-3 px-4 py-2.5 text-left w-full transition-colors hover:bg-[#383a40] cursor-pointer ${activeConversationId === conv._id ? "bg-[#383a40]" : ""
                     }`}
                 >
-                  <div className="relative">
-                    <Avatar className="h-9 w-9 shrink-0">
+                  <div className="relative shrink-0">
+                    <Avatar className="h-9 w-9 shrink-0 overflow-hidden">
                       <AvatarImage src={conv.otherUser?.imageUrl} alt={conv.otherUser?.name} />
                       <AvatarFallback className="bg-[#383a40] text-[#dbdee1] text-xs font-medium">
                         {conv.otherUser ? getInitials(conv.otherUser.name) : "?"}
@@ -462,6 +589,11 @@ export default function Home() {
                         </Badge>
                       )}
                     </div>
+                    {conv.otherUser?.email && (
+                      <span className="text-[11px] text-[#72767d] truncate">
+                        {conv.otherUser.email}
+                      </span>
+                    )}
                     <span className="text-xs text-[#949ba4] truncate">
                       {conv.lastMessage ? conv.lastMessage.text : "No messages yet"}
                     </span>
@@ -503,8 +635,8 @@ export default function Home() {
                       : ""
                     }`}
                 >
-                  <div className="relative">
-                    <Avatar className="h-9 w-9 shrink-0">
+                  <div className="relative shrink-0">
+                    <Avatar className="h-9 w-9 shrink-0 overflow-hidden">
                       <AvatarImage src={u.imageUrl} alt={u.name} />
                       <AvatarFallback className="bg-[#383a40] text-[#dbdee1] text-xs font-medium">
                         {getInitials(u.name)}
@@ -522,7 +654,7 @@ export default function Home() {
         </ScrollArea>
       </aside>
 
-      {/* ── Main Chat Area ── hidden on mobile when no chat is open */}
+      {/*  Main Chat Area hidden on mobile when no chat is open */}
       <main
         className={`flex-col flex-1 bg-[#36393f] overflow-hidden ${chatOpen ? "flex" : "hidden md:flex"
           }`}
@@ -563,5 +695,13 @@ export default function Home() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <ErrorBoundary>
+      <HomeContent />
+    </ErrorBoundary>
   );
 }

@@ -33,10 +33,10 @@ export default defineSchema({
   }).index("by_clerk_id", ["clerkId"]),
 
   typing: defineTable({
-    conversationId: v.id("conversations"),
-    clerkId: v.string(),
-    lastTyped: v.number(),
-  }).index("by_conversation", ["conversationId"])
-    .index("by_conversation_and_user", ["conversationId", "clerkId"]),
+  conversationId: v.string(),
+  clerkId: v.string(),
+  lastTyped: v.number(),
+}).index("by_conversation", ["conversationId"])
+  .index("by_conversation_and_user", ["conversationId", "clerkId"]),
 
 });

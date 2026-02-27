@@ -146,27 +146,37 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
   const setTyping = useMutation(api.typing.setTyping);
   const clearTyping = useMutation(api.typing.clearTyping);
   const typingUsers = useQuery(api.typing.getTyping, {
-    conversationId,
-    currentClerkId,
-  });
+  conversationId: conversationId as string,
+  currentClerkId,
+});
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isTypingLocal, setIsTypingLocal] = useState(false);
 
   const handleTyping = useCallback(() => {
-    setTyping({ conversationId, clerkId: currentClerkId });
+    if (!isTypingLocal) {
+      setIsTypingLocal(true);
+      setTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
+    }
 
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
     typingTimeoutRef.current = setTimeout(() => {
-      clearTyping({ conversationId, clerkId: currentClerkId });
+      setIsTypingLocal(false);
+      clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
     }, 2000);
-  }, [conversationId, currentClerkId, setTyping, clearTyping]);
+  }, [conversationId, currentClerkId, setTyping, clearTyping, isTypingLocal]);
 
   async function handleSend() {
     const trimmed = text.trim();
     if (!trimmed) return;
+
     setText("");
+
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    clearTyping({ conversationId, clerkId: currentClerkId });
+    setIsTypingLocal(false);
+    clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
+
     await sendMessage({ conversationId, senderId: currentClerkId, text: trimmed });
   }
 
@@ -177,9 +187,7 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
     }
   }
 
-  const isTyping = typingUsers && typingUsers.some(
-  (r) => Date.now() - r.lastTyped < 2000
-);
+  const isTyping = typingUsers && typingUsers.length > 0;
 
   return (
     <div className="flex flex-col h-full">

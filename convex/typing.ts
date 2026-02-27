@@ -2,67 +2,51 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
 /**
- * Typing indicator mutations and queries.
- * Tracks who is currently typing in a conversation.
+ * Typing indicator using a simple upsert approach.
  */
 
-/** Sets or updates typing status for a user in a conversation. */
 export const setTyping = mutation({
   args: {
-    conversationId: v.id("conversations"),
+    conversationId: v.string(),
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("typing")
-      .withIndex("by_conversation_and_user", (q) =>
-        q.eq("conversationId", args.conversationId).eq("clerkId", args.clerkId)
-      )
-      .unique();
-
-    if (existing) {
-      await ctx.db.patch(existing._id, { lastTyped: Date.now() });
-    } else {
-      await ctx.db.insert("typing", {
-        conversationId: args.conversationId,
-        clerkId: args.clerkId,
-        lastTyped: Date.now(),
-      });
-    }
+    await ctx.db.insert("typing", {
+      conversationId: args.conversationId as unknown as import("./_generated/dataModel").Id<"conversations">,
+      clerkId: args.clerkId,
+      lastTyped: Date.now(),
+    });
   },
 });
 
-/** Clears typing status for a user in a conversation. */
 export const clearTyping = mutation({
   args: {
-    conversationId: v.id("conversations"),
+    conversationId: v.string(),
     clerkId: v.string(),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.db
+    const records = await ctx.db
       .query("typing")
-      .withIndex("by_conversation_and_user", (q) =>
-        q.eq("conversationId", args.conversationId).eq("clerkId", args.clerkId)
+      .withIndex("by_conversation", (q) =>
+        q.eq("conversationId", args.conversationId as unknown as import("./_generated/dataModel").Id<"conversations">)
       )
-      .unique();
+      .collect();
 
-    if (existing) {
-      await ctx.db.delete(existing._id);
-    }
+    const mine = records.filter((r) => r.clerkId === args.clerkId);
+    await Promise.all(mine.map((r) => ctx.db.delete(r._id)));
   },
 });
 
-/** Returns typing users in a conversation excluding current user. */
 export const getTyping = query({
   args: {
-    conversationId: v.id("conversations"),
+    conversationId: v.string(),
     currentClerkId: v.string(),
   },
   handler: async (ctx, args) => {
     const records = await ctx.db
       .query("typing")
       .withIndex("by_conversation", (q) =>
-        q.eq("conversationId", args.conversationId)
+        q.eq("conversationId", args.conversationId as unknown as import("./_generated/dataModel").Id<"conversations">)
       )
       .collect();
 

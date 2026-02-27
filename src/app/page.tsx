@@ -162,9 +162,9 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     typingTimeoutRef.current = setTimeout(() => {
-      setIsTypingLocal(false);
-      clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
-    }, 2000);
+  setIsTypingLocal(false);
+  clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
+}, 5000);
   }, [conversationId, currentClerkId, setTyping, clearTyping, isTypingLocal]);
 
   async function handleSend() {
@@ -225,15 +225,20 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
       {/* Input area */}
       <div className="flex items-center gap-2 px-4 py-3 border-t border-zinc-800 bg-zinc-900 shrink-0">
         <Input
-          value={text}
-          onChange={(e) => {
-            setText(e.target.value);
-            handleTyping();
-          }}
-          onKeyDown={handleKeyDown}
-          placeholder="Type a message…"
-          className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-zinc-600"
-        />
+  value={text}
+  onChange={(e) => {
+    setText(e.target.value);
+    handleTyping();
+  }}
+  onKeyDown={handleKeyDown}
+  onBlur={() => {
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    setIsTypingLocal(false);
+    clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
+  }}
+  placeholder="Type a message…"
+  className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-zinc-600"
+/>
         <Button
           onClick={handleSend}
           disabled={!text.trim()}

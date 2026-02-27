@@ -66,11 +66,6 @@ export const getTyping = query({
       )
       .collect();
 
-    const twoSecondsAgo = Date.now() - 2000;
-
-    return records.filter(
-      (r) =>
-        r.clerkId !== args.currentClerkId && r.lastTyped > twoSecondsAgo
-    );
+    return records.filter((r) => r.clerkId !== args.currentClerkId);
   },
 });

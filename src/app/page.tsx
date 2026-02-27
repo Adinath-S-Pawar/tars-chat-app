@@ -9,6 +9,7 @@ import { useSyncUser } from "@/hooks/useSyncUser";
 import { formatMessageTime } from "@/lib/formatTime";
 import { ArrowLeft } from "lucide-react";
 import { usePresence } from "@/hooks/usePresence";
+import { useCallback } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -142,11 +143,30 @@ interface ChatAreaProps {
 function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAreaProps) {
   const [text, setText] = useState("");
   const sendMessage = useMutation(api.messages.sendMessage);
+  const setTyping = useMutation(api.typing.setTyping);
+  const clearTyping = useMutation(api.typing.clearTyping);
+  const typingUsers = useQuery(api.typing.getTyping, {
+    conversationId,
+    currentClerkId,
+  });
+
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTyping = useCallback(() => {
+    setTyping({ conversationId, clerkId: currentClerkId });
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      clearTyping({ conversationId, clerkId: currentClerkId });
+    }, 2000);
+  }, [conversationId, currentClerkId, setTyping, clearTyping]);
 
   async function handleSend() {
     const trimmed = text.trim();
     if (!trimmed) return;
     setText("");
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    clearTyping({ conversationId, clerkId: currentClerkId });
     await sendMessage({ conversationId, senderId: currentClerkId, text: trimmed });
   }
 
@@ -157,11 +177,14 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
     }
   }
 
+  const isTyping = typingUsers && typingUsers.some(
+  (r) => Date.now() - r.lastTyped < 2000
+);
+
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
       <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-800 bg-zinc-900 shrink-0">
-        {/* Back button — mobile only */}
         <button
           onClick={onBack}
           className="md:hidden mr-1 p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
@@ -177,7 +200,11 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
         </Avatar>
         <div>
           <p className="text-sm font-semibold">{otherUser.name}</p>
-          <p className="text-xs text-zinc-400">{otherUser.email}</p>
+          {isTyping ? (
+            <p className="text-xs text-green-400 animate-pulse">typing...</p>
+          ) : (
+            <p className="text-xs text-zinc-400">{otherUser.email}</p>
+          )}
         </div>
       </div>
 
@@ -191,7 +218,10 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
       <div className="flex items-center gap-2 px-4 py-3 border-t border-zinc-800 bg-zinc-900 shrink-0">
         <Input
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value);
+            handleTyping();
+          }}
           onKeyDown={handleKeyDown}
           placeholder="Type a message…"
           className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-zinc-600"

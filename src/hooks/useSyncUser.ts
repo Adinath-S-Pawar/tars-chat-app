@@ -1,26 +1,47 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useEffect, useCallback, useRef } from "react";
 import { useMutation } from "convex/react";
-import { useEffect } from "react";
 import { api } from "../../convex/_generated/api";
 
 /**
- * Hook to sync the logged-in Clerk user to Convex database.
- * Called on app load — creates user profile if it doesn't exist yet.
+ * Sets user as online on mount and offline on unmount or logout.
+ * Heartbeat every 20 seconds maintains online status.
  */
-export function useSyncUser() {
-  const { user, isLoaded } = useUser();
-  const upsertUser = useMutation(api.users.upsertUser);
+export function usePresence(clerkId: string | undefined) {
+  const setPresenceMutation = useMutation(api.presence.setPresence);
+  const prevClerkId = useRef<string | undefined>(undefined);
+
+  const setOnline = useCallback((id: string) => {
+    setPresenceMutation({ clerkId: id, online: true });
+  }, [setPresenceMutation]);
+
+  const setOffline = useCallback((id: string) => {
+    setPresenceMutation({ clerkId: id, online: false });
+  }, [setPresenceMutation]);
 
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    if (clerkId) {
+      prevClerkId.current = clerkId;
+      setOnline(clerkId);
 
-    upsertUser({
-      clerkId: user.id,
-      name: user.fullName ?? user.username ?? "Anonymous",
-      email: user.emailAddresses[0]?.emailAddress ?? "",
-      imageUrl: user.imageUrl ?? "",
-    });
-  }, [isLoaded, user, upsertUser]);
+      const heartbeat = setInterval(() => setOnline(clerkId), 20000);
+
+      function handleBeforeUnload() {
+        setOffline(clerkId!);
+      }
+
+      window.addEventListener("beforeunload", handleBeforeUnload);
+
+      return () => {
+        clearInterval(heartbeat);
+        window.removeEventListener("beforeunload", handleBeforeUnload);
+      };
+    } else {
+      if (prevClerkId.current) {
+        setOffline(prevClerkId.current);
+        prevClerkId.current = undefined;
+      }
+    }
+  }, [clerkId, setOnline, setOffline]);
 }

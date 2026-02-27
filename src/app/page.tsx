@@ -10,6 +10,7 @@ import { formatMessageTime } from "@/lib/formatTime";
 import { ArrowLeft } from "lucide-react";
 import { usePresence } from "@/hooks/usePresence";
 import { useCallback } from "react";
+import { Badge } from "@/components/ui/badge";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -145,13 +146,20 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
   const sendMessage = useMutation(api.messages.sendMessage);
   const setTyping = useMutation(api.typing.setTyping);
   const clearTyping = useMutation(api.typing.clearTyping);
+  const markAsRead = useMutation(api.lastRead.markAsRead);
   const typingUsers = useQuery(api.typing.getTyping, {
-  conversationId: conversationId as string,
-  currentClerkId,
-});
+    conversationId: conversationId as string,
+    currentClerkId,
+  });
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isTypingLocal, setIsTypingLocal] = useState(false);
+
+  useEffect(() => {
+    if (currentClerkId) {
+      markAsRead({ conversationId, clerkId: currentClerkId });
+    }
+  }, [conversationId, currentClerkId]);
 
   const handleTyping = useCallback(() => {
     if (!isTypingLocal) {
@@ -162,9 +170,9 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     typingTimeoutRef.current = setTimeout(() => {
-  setIsTypingLocal(false);
-  clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
-}, 10000);
+      setIsTypingLocal(false);
+      clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
+    }, 10000);
   }, [conversationId, currentClerkId, setTyping, clearTyping, isTypingLocal]);
 
   async function handleSend() {
@@ -225,20 +233,20 @@ function ChatArea({ conversationId, otherUser, currentClerkId, onBack }: ChatAre
       {/* Input area */}
       <div className="flex items-center gap-2 px-4 py-3 border-t border-zinc-800 bg-zinc-900 shrink-0">
         <Input
-  value={text}
-  onChange={(e) => {
-    setText(e.target.value);
-    handleTyping();
-  }}
-  onKeyDown={handleKeyDown}
-  onBlur={() => {
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    setIsTypingLocal(false);
-    clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
-  }}
-  placeholder="Type a message…"
-  className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-zinc-600"
-/>
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            handleTyping();
+          }}
+          onKeyDown={handleKeyDown}
+          onBlur={() => {
+            if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+            setIsTypingLocal(false);
+            clearTyping({ conversationId: conversationId as string, clerkId: currentClerkId });
+          }}
+          placeholder="Type a message…"
+          className="flex-1 bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-zinc-600"
+        />
         <Button
           onClick={handleSend}
           disabled={!text.trim()}
@@ -300,17 +308,26 @@ export default function Home() {
     });
     setActiveConversationId(convId as Id<"conversations">);
     setActiveOtherUser(otherUser);
+    markAsRead({ conversationId: convId as Id<"conversations">, clerkId: user.id });
   }
 
   function handleSelectConversation(conv: Conversation) {
     setActiveConversationId(conv._id);
     setActiveOtherUser(conv.otherUser);
+    if (user) markAsRead({ conversationId: conv._id, clerkId: user.id });
   }
 
   function handleBack() {
     setActiveConversationId(null);
     setActiveOtherUser(null);
   }
+
+  const unreadCounts = useQuery(
+    api.lastRead.getAllUnreadCounts,
+    user ? { clerkId: user.id } : "skip"
+  );
+
+  const markAsRead = useMutation(api.lastRead.markAsRead);
 
   return (
     <div className="flex h-screen bg-zinc-950 text-white overflow-hidden">
@@ -374,10 +391,17 @@ export default function Home() {
                       <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-zinc-900" />
                     )}
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-medium truncate">
-                      {conv.otherUser?.name ?? "Unknown"}
-                    </span>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium truncate">
+                        {conv.otherUser?.name ?? "Unknown"}
+                      </span>
+                      {unreadCounts && unreadCounts[conv._id] > 0 && (
+                        <Badge className="bg-blue-600 text-white text-[10px] h-5 min-w-5 flex items-center justify-center rounded-full px-1.5 ml-2 shrink-0">
+                          {unreadCounts[conv._id] > 99 ? "99+" : unreadCounts[conv._id]}
+                        </Badge>
+                      )}
+                    </div>
                     <span className="text-xs text-zinc-500 truncate">
                       {conv.lastMessage ? conv.lastMessage.text : "No messages yet"}
                     </span>
